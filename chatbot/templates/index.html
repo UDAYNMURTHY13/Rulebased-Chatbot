@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UDAY'S Chatbot</title>
+    <style>
+        body, html {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #1a1a2e;
+            color: #D1D5DB;
+            overflow: hidden;
+        }
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .background::before, .background::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, #3a3a5c 0%, transparent 50%);
+            animation: rotate 20s linear infinite;
+        }
+        .background::after {
+            background: radial-gradient(circle, #0f3460 0%, transparent 40%);
+            animation-duration: 30s;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: twinkle 2s infinite ease-in-out;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        .logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #e94560;
+            z-index: 10;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+        .chat-container {
+            width: 600px;
+            max-width: 90%;
+            height: 90vh;
+            margin: 5vh auto;
+            background-color: rgba(30, 30, 30, 0.8);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+        .chat-header {
+            background-color: #16213e;
+            color: #D1D5DB;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .chat-body {
+            padding: 20px;
+            height: calc(100% - 140px);
+            overflow-y: auto;
+            background-color: rgba(42, 43, 50, 0.5);
+            flex: 1;
+        }
+        .chat-form {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-top: 1px solid #3E3F44;
+            background-color: #16213e;
+        }
+        .chat-form input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            margin-right: 10px;
+            border: 1px solid #3E3F44;
+            border-radius: 20px;
+            background-color: #2A2B32;
+            color: #D1D5DB;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .chat-form input[type="text"]:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.25);
+        }
+        .chat-form button {
+            padding: 12px 25px;
+            background-color: #e94560;
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .chat-form button:hover {
+            background-color: #c13650;
+        }
+        .chat-form button:active {
+            transform: scale(0.98);
+        }
+        .user-message, .bot-message {
+            padding: 12px 18px;
+            border-radius: 18px;
+            margin-bottom: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e94560;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #3E3F44;
+            color: #D1D5DB;
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body>
+    <div class="background">
+        <div class="stars"></div>
+    </div>
+    <div class="logo">UDAY</div>
+    <div class="chat-container">
+        <div class="chat-header">Chatbot</div>
+        <div class="chat-body" id="chat-body">
+            <p class="bot-message">Hello! How can I assist you today?</p>
+        </div>
+        <div class="chat-form">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendButton = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            const chatBody = document.getElementById('chat-body');
+
+            sendButton.addEventListener('click', function() {
+                sendMessage();
+            });
+
+            userInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            function sendMessage() {
+                const userMessage = userInput.value.trim();
+                if (userMessage !== '') {
+                    appendUserMessage(userMessage);
+                    fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 'user_input': userMessage })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const botResponse = data.bot_response;
+                        appendBotMessage(botResponse);
+                    })
+                    .catch(error => console.error('Error:', error));
+                    userInput.value = '';
+                }
+            }
+
+            function appendUserMessage(message) {
+                const messageElement = document.createElement('p');
+                messageElement.classList.add('user-message');
+                messageElement.textContent = message;
+                chatBody.appendChild(messageElement);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            function appendBotMessage(message) {
+                const messageElement = document.createElement('p');
+                messageElement.classList.add('bot-message');
+                messageElement.textContent = message;
+                chatBody.appendChild(messageElement);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Add stars to the background
+            function addStars() {
+                const starsContainer = document.querySelector('.stars');
+                for (let i = 0; i < 100; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.style.width = `${Math.random() * 3}px`;
+                    star.style.height = star.style.width;
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.animationDelay = `${Math.random() * 2}s`;
+                    starsContainer.appendChild(star);
+                }
+            }
+
+            addStars();
+        });
+    </script>
+</body>
+</html>
